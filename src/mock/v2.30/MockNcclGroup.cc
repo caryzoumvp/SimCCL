@@ -1959,7 +1959,7 @@ namespace MockNccl {
     }
     gp_idx = GroupIndex[std::make_pair(rank,type)];
     gp_info = AllGroups[gp_idx];
-    if (gp_info.nNodes > 1) {
+    if (gp_info.nNodes > 1 || gp_info.NVSwitchs.empty()) {
       NcclLog->writeLog(NcclLogLevel::DEBUG," %d","error NVLS ALGO dont");
       return {};
     } else {
@@ -1991,6 +1991,9 @@ namespace MockNccl {
     }
     gp_idx = GroupIndex[std::make_pair(rank,type)];
     gp_info = AllGroups[gp_idx];
+    if (gp_info.NVSwitchs.size() != static_cast<size_t>(gp_info.nNodes)) {
+      return {};
+    }
     if(AllNVLStreechannels.count(gp_idx)){
       return AllNVLStreechannels[gp_idx];
     }
@@ -2340,7 +2343,8 @@ namespace MockNccl {
                 const char* e = std::getenv("AS_NVLS_MIN_BYTES");
                 return e ? strtoull(e, nullptr, 10) : 2097152ULL; // 2MB (between 1M RING and 4M NVLS)
               }();
-              if (gp_info.nRanks >= 8 && NVLSenable && data_size >= NVLS_MIN_BYTES) {
+              if (gp_info.nRanks >= 8 && NVLSenable &&
+                  !gp_info.NVSwitchs.empty() && data_size >= NVLS_MIN_BYTES) {
                 info->algorithm = NCCL_ALGO_NVLS;
               } else {
                 info->algorithm = NCCL_ALGO_RING;
